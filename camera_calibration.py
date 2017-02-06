@@ -1,3 +1,4 @@
+import argparse
 import cv2
 import glob
 import matplotlib.pyplot as plt
@@ -73,12 +74,16 @@ def UndistortFile(inFileName, outFileName):
     outImg = cv2.cvtColor(outImg, cv2.COLOR_BGR2RGB)
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20,8))
     ax1.imshow(inImg)
-    ax1.set_title('Original Image', fontsize=20)
+    ax1.set_title("Original Image", fontsize=20)
     ax2.imshow(outImg)
-    ax2.set_title('Undistorted Image', fontsize=20)
+    ax2.set_title("Undistorted Image", fontsize=20)
     fig.savefig(outFileName)
 
 if __name__ == '__main__':
-    # Test undistortion on an image
-    UndistortFile("camera_cal/calibration1.jpg", "examples/undistorted_calibration1.png")
-    UndistortFile("test_images/test1.jpg", "examples/undistorted_test1.png")
+    argParser = argparse.ArgumentParser(description="Camera Calibration")
+    argParser.add_argument("in_distorted", type=str, help="Path to a distorted image file")
+    argParser.add_argument("out_plot",
+                           type=str,
+                           help="Path to the plot file of a side-by-side comparison of the distorted and undistorted images")
+    args = argParser.parse_args()
+    UndistortFile(args.in_distorted, args.out_plot)
