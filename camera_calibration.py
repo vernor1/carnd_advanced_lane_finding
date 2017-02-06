@@ -7,7 +7,7 @@ import os.path
 import pickle
 
 
-CALIBRATION_DIR = "camera_cal"
+CALIBRATION_DIR = "camera_calibration"
 CALIBRATION_DATA_FILE = CALIBRATION_DIR + "/calibration_data.p"
 CHESSBOARD_COLUMNS = 9
 CHESSBOARD_ROWS = 6
@@ -66,9 +66,15 @@ def GetCalibrationData():
 
     return cameraMatrix, distCoeffs
 
-def UndistortFile(inFileName, outFileName):
+if __name__ == '__main__':
+    argParser = argparse.ArgumentParser(description="Camera Calibration")
+    argParser.add_argument("in_distorted", type=str, help="Path to a distorted image file")
+    argParser.add_argument("out_plot",
+                           type=str,
+                           help="Path to the plot file of a side-by-side comparison of the distorted and undistorted images")
     cameraMatrix, distCoeffs = GetCalibrationData()
-    inImg = cv2.imread(inFileName)
+    args = argParser.parse_args()
+    inImg = cv2.imread(args.in_distorted)
     outImg = cv2.undistort(inImg, cameraMatrix, distCoeffs, None, cameraMatrix)
     inImg = cv2.cvtColor(inImg, cv2.COLOR_BGR2RGB)
     outImg = cv2.cvtColor(outImg, cv2.COLOR_BGR2RGB)
@@ -77,13 +83,4 @@ def UndistortFile(inFileName, outFileName):
     ax1.set_title("Original Image", fontsize=20)
     ax2.imshow(outImg)
     ax2.set_title("Undistorted Image", fontsize=20)
-    fig.savefig(outFileName)
-
-if __name__ == '__main__':
-    argParser = argparse.ArgumentParser(description="Camera Calibration")
-    argParser.add_argument("in_distorted", type=str, help="Path to a distorted image file")
-    argParser.add_argument("out_plot",
-                           type=str,
-                           help="Path to the plot file of a side-by-side comparison of the distorted and undistorted images")
-    args = argParser.parse_args()
-    UndistortFile(args.in_distorted, args.out_plot)
+    fig.savefig(args.out_plot)
