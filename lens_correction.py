@@ -1,7 +1,5 @@
-import argparse
 import cv2
 import glob
-import matplotlib.pyplot as plt
 import numpy as np
 import os.path
 import pickle
@@ -73,26 +71,3 @@ class TLensCorrector():
                 imgPoints.append(corners)
 
         return objPoints, imgPoints, imgSize
-
-
-# The following code is only used for debugging and generating test images
-#------------------------------------------------------------------------------
-if __name__ == '__main__':
-    argParser = argparse.ArgumentParser(description="Image Correction")
-    argParser.add_argument("in_distorted", type=str, help="Path to a distorted image file")
-    argParser.add_argument("out_plot",
-                           type=str,
-                           help="Path to the plot file of a side-by-side comparison of the distorted and undistorted images")
-    args = argParser.parse_args()
-    inImg = cv2.imread(args.in_distorted)
-    lensCorrector = TLensCorrector("camera_calibration")
-    outImg = lensCorrector.Undistort(inImg)
-
-    inImg = cv2.cvtColor(inImg, cv2.COLOR_BGR2RGB)
-    outImg = cv2.cvtColor(outImg, cv2.COLOR_BGR2RGB)
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20,8))
-    ax1.imshow(inImg)
-    ax1.set_title("Original Image", fontsize=20)
-    ax2.imshow(outImg)
-    ax2.set_title("Undistorted Image", fontsize=20)
-    fig.savefig(args.out_plot)

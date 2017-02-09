@@ -1,5 +1,6 @@
 import argparse
 import cv2
+import matplotlib.pyplot as plt
 import numpy as np
 
 from lens_correction import TLensCorrector
@@ -22,9 +23,14 @@ if __name__ == '__main__':
     lensCorrector = TLensCorrector(CAMERA_CALIBRATION_DIR)
     undistortedImg = lensCorrector.Undistort(img)
 
-    thresholdedImg = GetThresholdedBinary(undistortedImg) * 255
+    thresholdedImg = GetThresholdedBinary(undistortedImg)
 
     perspectiveTransformer = TPerspectiveTransformer((img.shape[1], img.shape[0]))
     warped = perspectiveTransformer.Warp(thresholdedImg)
 
-    cv2.imwrite(args.out_img, warped)
+#    histogram = np.sum(warped[warped.shape[0]//2:,:], axis=0)
+#    fig = plt.figure()
+#    plt.plot(histogram)
+#    fig.savefig(args.out_img)
+
+    cv2.imwrite(args.out_img, warped * 255)
