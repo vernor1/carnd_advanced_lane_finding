@@ -66,17 +66,8 @@ def GetChannelBinary(channel, thresh=(0, 255)):
     outBinary[(channel >= thresh[0]) & (channel <= thresh[1])] = 1
     return outBinary
 
-if __name__ == '__main__':
-    argParser = argparse.ArgumentParser(description="Binary Image")
-    argParser.add_argument("in_img", type=str, help="Path to an image file")
-    argParser.add_argument("out_plot",
-                           type=str,
-                           help="Path to the plot file")
-    args = argParser.parse_args()
-
-    img = cv2.imread(args.in_img)
+def GetThresholdedBinary(img):
     hls = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
-
     channelS = hls[:,:,2]
     channelBinaryS = GetChannelBinary(channelS, thresh=(90, 255))
     channelH = hls[:,:,0]
@@ -87,16 +78,49 @@ if __name__ == '__main__':
     # S-channel can capture shadows on the lane, so we should use it in conjunction with H-channel, which captures same color regions.
     # R-channel capures white lines only and can form a union with S and H.
     combinedColors[((channelBinaryS == 1) & (channelBinaryH == 1)) | (channelBinaryR == 1)] = 1
-
-    # Use S-channel providing the most information about lane lines as the base channel for gradients
-    baseChannel = channelS
-    gradX = GetSobelBinary(baseChannel, orient='x', sobelKernel=5, thresh=(20, 200))
-    gradY = GetSobelBinary(baseChannel, orient='y', sobelKernel=5, thresh=(20, 200))
-    magBinary = GetMagnitudeBinary(baseChannel, sobelKernel=7, thresh=(50, 240))
+    # Use Y-channel providing the most information about lane lines as the base channel for gradients
+    baseChannel = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    gradX = GetSobelBinary(baseChannel, orient='x', sobelKernel=5, thresh=(35, 200))
+    gradY = GetSobelBinary(baseChannel, orient='y', sobelKernel=5, thresh=(35, 200))
+    magBinary = GetMagnitudeBinary(baseChannel, sobelKernel=7, thresh=(50, 250))
     dirBinary = GetDirectionBinary(baseChannel, sobelKernel=9, thresh=(0.7, 1.3))
     combinedGradients = np.zeros_like(dirBinary)
     combinedGradients[((gradX == 1) & (gradY == 1)) | ((magBinary == 1) & (dirBinary == 1))] = 1
+    combinedBinary = np.zeros_like(combinedGradients)
+    combinedBinary[(combinedGradients == 1) | (combinedColors == 1)] = 1
+    return combinedBinary
 
+
+# The following code is only used for debugging and generating test images
+#------------------------------------------------------------------------------
+if __name__ == '__main__':
+    argParser = argparse.ArgumentParser(description="Binary Image")
+    argParser.add_argument("in_img", type=str, help="Path to an image file")
+    argParser.add_argument("out_plot",
+                           type=str,
+                           help="Path to the plot file")
+    args = argParser.parse_args()
+    img = cv2.imread(args.in_img)
+
+    hls = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
+    channelS = hls[:,:,2]
+    channelBinaryS = GetChannelBinary(channelS, thresh=(90, 255))
+    channelH = hls[:,:,0]
+    channelBinaryH = GetChannelBinary(channelH, thresh=(15, 100))
+    channelR = img[:,:,0]
+    channelBinaryR = GetChannelBinary(channelR, thresh=(200, 255))
+    combinedColors = np.zeros_like(channelBinaryS)
+    # S-channel can capture shadows on the lane, so we should use it in conjunction with H-channel, which captures same color regions.
+    # R-channel capures white lines only and can form a union with S and H.
+    combinedColors[((channelBinaryS == 1) & (channelBinaryH == 1)) | (channelBinaryR == 1)] = 1
+    # Use Y-channel providing the most information about lane lines as the base channel for gradients
+    baseChannel = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    gradX = GetSobelBinary(baseChannel, orient='x', sobelKernel=5, thresh=(35, 200))
+    gradY = GetSobelBinary(baseChannel, orient='y', sobelKernel=5, thresh=(35, 200))
+    magBinary = GetMagnitudeBinary(baseChannel, sobelKernel=7, thresh=(50, 250))
+    dirBinary = GetDirectionBinary(baseChannel, sobelKernel=9, thresh=(0.7, 1.3))
+    combinedGradients = np.zeros_like(dirBinary)
+    combinedGradients[((gradX == 1) & (gradY == 1)) | ((magBinary == 1) & (dirBinary == 1))] = 1
     combinedBinary = np.zeros_like(combinedGradients)
     combinedBinary[(combinedGradients == 1) | (combinedColors == 1)] = 1
 
