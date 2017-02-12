@@ -5,8 +5,10 @@ import numpy as np
 class TPerspectiveTransformer():
     # Constants ---------------------------------------------------------------
     LEFT_BOTTOM = (193, 719)
-    LEFT_TOP = (579, 460)
-    RIGHT_TOP = (703, 460)
+#    LEFT_TOP = (579, 460)
+    LEFT_TOP = (595, 449)
+#    RIGHT_TOP = (703, 460)
+    RIGHT_TOP = (685, 449)
     RIGHT_BOTTOM = (1122, 719)
 
     # Public Members ----------------------------------------------------------

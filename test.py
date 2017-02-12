@@ -111,7 +111,7 @@ if __name__ == '__main__':
         perspectiveTransformer = TPerspectiveTransformer((undistortedImg.shape[1], undistortedImg.shape[0]))
         thresholdedBinary = GetThresholdedBinary(undistortedImg)
         warpedBinary = perspectiveTransformer.Warp(thresholdedBinary)
-        laneTracker = TLaneTracker((warpedBinary.shape[1], warpedBinary.shape[0]))
+        laneTracker = TLaneTracker()
         leftCoefficients, rightCoefficients, curveRad, deviation = laneTracker.ProcessLaneImage(warpedBinary)
         # Generate x and y values for plotting
         plotY = np.linspace(0, warpedBinary.shape[0] - 1, warpedBinary.shape[0])

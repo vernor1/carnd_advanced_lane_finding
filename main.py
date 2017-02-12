@@ -8,29 +8,31 @@ from lens_correction import TLensCorrector
 from moviepy.editor import VideoFileClip
 from perspective_transform import TPerspectiveTransformer
 
-
+# Constants -------------------------------------------------------------------
 CAMERA_CALIBRATION_DIR = "camera_calibration"
 
+# Global Variables ------------------------------------------------------------
 LensCorrector = TLensCorrector(CAMERA_CALIBRATION_DIR)
+LaneTracker = TLaneTracker()
 
 # FIXME: remove
 FRAME_RANGE = (1, 100)
 FrameNumber = 0
 
+# Functions ------------------------------------------------------------
 def ProcessImage(img):
     # FIXME: remove
-    global FRAME_RANGE
-    global FrameNumber
-    FrameNumber += 1
-    if FrameNumber not in range(FRAME_RANGE[0], FRAME_RANGE[1]):
-        return img
+#    global FRAME_RANGE
+#    global FrameNumber
+#    FrameNumber += 1
+#    if FrameNumber not in range(FRAME_RANGE[0], FRAME_RANGE[1]):
+#        return img
 
     undistortedImg = LensCorrector.Undistort(img)
     perspectiveTransformer = TPerspectiveTransformer((undistortedImg.shape[1], undistortedImg.shape[0]))
     thresholdedBinary = GetThresholdedBinary(undistortedImg)
     warpedBinary = perspectiveTransformer.Warp(thresholdedBinary)
-    laneTracker = TLaneTracker((warpedBinary.shape[1], warpedBinary.shape[0]))
-    leftCoefficients, rightCoefficients, curveRad, deviation = laneTracker.ProcessLaneImage(warpedBinary)
+    leftCoefficients, rightCoefficients, curveRad, deviation = LaneTracker.ProcessLaneImage(warpedBinary)
     # Generate x and y values for plotting
     plotY = np.linspace(0, warpedBinary.shape[0] - 1, warpedBinary.shape[0])
     leftPlotX = leftCoefficients[0] * plotY**2 + leftCoefficients[1] * plotY + leftCoefficients[2]
