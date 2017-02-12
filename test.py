@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from binary_thresholding import GetThresholdedBinary, GetSobelBinary, GetMagnitudeBinary, GetDirectionBinary, GetChannelBinary
+from lane_tracking import TLaneTracker
 from lens_correction import TLensCorrector
-from line_detection import TLineDetector
 from perspective_transform import TPerspectiveTransformer
 
 
@@ -17,7 +17,7 @@ CAMERA_CALIBRATION_DIR = "camera_calibration"
 if __name__ == '__main__':
     argParser = argparse.ArgumentParser(description="Test Pipeline Components")
     argParser.add_argument("type",
-                           choices=["lens_correction", "binary_thresholding", "perspective_transform", "line_detection"])
+                           choices=["lens_correction", "binary_thresholding", "perspective_transform", "lane_tracking"])
     argParser.add_argument("in_img",
                            type=str,
                            help="Path to the original image file")
@@ -28,14 +28,14 @@ if __name__ == '__main__':
 
     img = cv2.imread(args.in_img)
     lensCorrector = TLensCorrector(CAMERA_CALIBRATION_DIR)
-    undistorted = lensCorrector.Undistort(img)
+    undistortedImg = lensCorrector.Undistort(img)
 
     if args.type == "lens_correction":
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20,8))
         fig.tight_layout()
         ax1.imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
         ax1.set_title("Original Image", fontsize=20)
-        ax2.imshow(cv2.cvtColor(undistorted, cv2.COLOR_BGR2RGB))
+        ax2.imshow(cv2.cvtColor(undistortedImg, cv2.COLOR_BGR2RGB))
         ax2.set_title("Undistorted Image", fontsize=20)
         plt.subplots_adjust(left=0.05, right=0.95, top=0.995, bottom=0.005)
         fig.savefig(args.out_img)
@@ -96,34 +96,61 @@ if __name__ == '__main__':
         fig.savefig(args.out_img)
 
     elif args.type == "perspective_transform":
-        perspectiveTransformer = TPerspectiveTransformer((undistorted.shape[1], undistorted.shape[0]))
-        warped = perspectiveTransformer.Warp(undistorted)
+        perspectiveTransformer = TPerspectiveTransformer((undistortedImg.shape[1], undistortedImg.shape[0]))
+        warpedImg = perspectiveTransformer.Warp(undistortedImg)
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 8))
         fig.tight_layout()
-        ax1.imshow(cv2.cvtColor(undistorted, cv2.COLOR_BGR2RGB))
+        ax1.imshow(cv2.cvtColor(undistortedImg, cv2.COLOR_BGR2RGB))
         ax1.set_title("Undistorted Image", fontsize=20)
-        ax2.imshow(cv2.cvtColor(warped, cv2.COLOR_BGR2RGB))
+        ax2.imshow(cv2.cvtColor(warpedImg, cv2.COLOR_BGR2RGB))
         ax2.set_title("Warped Image", fontsize=20)
         plt.subplots_adjust(left=0.05, right=0.95, top=0.995, bottom=0.005)
         fig.savefig(args.out_img)
 
-    elif args.type == "line_detection":
-        perspectiveTransformer = TPerspectiveTransformer((undistorted.shape[1], undistorted.shape[0]))
-        thresholdedBinary = GetThresholdedBinary(undistorted)
+    elif args.type == "lane_tracking":
+        perspectiveTransformer = TPerspectiveTransformer((undistortedImg.shape[1], undistortedImg.shape[0]))
+        thresholdedBinary = GetThresholdedBinary(undistortedImg)
         warpedBinary = perspectiveTransformer.Warp(thresholdedBinary)
-        lineDetector = TLineDetector()
-        leftFit, rightFit = lineDetector.ProcessLaneImage(warpedBinary)
-        # Create an output image to draw on and  visualize the result
-        outImg = np.dstack((warpedBinary, warpedBinary, warpedBinary)) * 255
+        laneTracker = TLaneTracker((warpedBinary.shape[1], warpedBinary.shape[0]))
+        leftCoefficients, rightCoefficients, curveRad, deviation = laneTracker.ProcessLaneImage(warpedBinary)
         # Generate x and y values for plotting
         plotY = np.linspace(0, warpedBinary.shape[0] - 1, warpedBinary.shape[0])
-        leftFitX = leftFit[0] * plotY**2 + leftFit[1] * plotY + leftFit[2]
-        rightFitX = rightFit[0] * plotY**2 + rightFit[1] * plotY + rightFit[2]
+        leftPlotX = leftCoefficients[0] * plotY**2 + leftCoefficients[1] * plotY + leftCoefficients[2]
+        rightPlotX = rightCoefficients[0] * plotY**2 + rightCoefficients[1] * plotY + rightCoefficients[2]
+        # Fill the lane surface
+        laneImg = np.zeros_like(undistortedImg)
+        # Recast the x and y points into usable format for cv2.fillPoly()
+        leftPoints = np.array([np.transpose(np.vstack([leftPlotX, plotY]))])
+        rightPoints = np.array([np.flipud(np.transpose(np.vstack([rightPlotX, plotY])))])
+        lanePoints = np.hstack((leftPoints, rightPoints))
+        # Draw the lane onto the warped blank image
+        cv2.fillPoly(laneImg, np.int_([lanePoints]), (255, 0, 0))
+        # Draw lines
+        cv2.polylines(laneImg, np.int_([leftPoints]), isClosed=False, color=(0, 0, 255), thickness=32)
+        cv2.polylines(laneImg, np.int_([rightPoints]), isClosed=False, color=(0, 255, 0), thickness=32)
+        unwarpedLane = perspectiveTransformer.Unwarp(laneImg)
+        outImg = cv2.addWeighted(undistortedImg, 1, unwarpedLane, 0.3, 0)
+        if deviation < 0:
+            deviationDirection = "left"
+        else:
+            deviationDirection = "right"
+        deviation = np.absolute(deviation)
+        cv2.putText(outImg, "Curvature radius: %dm" % (curveRad),
+                    (20, 70), cv2.FONT_HERSHEY_SIMPLEX, 1.4, (255, 255, 255), 2)
+        cv2.putText(outImg, "Deviation: %.2fm %s" % (deviation, deviationDirection),
+                    (20, 120), cv2.FONT_HERSHEY_SIMPLEX, 1.4, (255, 255, 255), 2)
         # Create the plot
-        fig = plt.figure()
-        plt.imshow(outImg)
-        plt.plot(leftFitX, plotY, color='red')
-        plt.plot(rightFitX, plotY, color='green')
-        plt.xlim(0, warpedBinary.shape[1])
-        plt.ylim(warpedBinary.shape[0], 0)
+        fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 20))
+        fig.tight_layout()
+        ax1.imshow(cv2.cvtColor(undistortedImg, cv2.COLOR_BGR2RGB))
+        ax1.set_title("Undistorted Image", fontsize=20)
+        ax2.imshow(cv2.cvtColor(warpedBinary * 255, cv2.COLOR_GRAY2RGB))
+#        cv2.imwrite("test_images/warped.png", cv2.cvtColor(warpedBinary * 255, cv2.COLOR_GRAY2RGB))
+        plt.rcParams['lines.linewidth'] = 7
+        ax2.plot(leftPlotX, plotY, color='red')
+        ax2.plot(rightPlotX, plotY, color='green')
+        ax2.set_title("Warped Binary with Detected Lines", fontsize=20)
+        ax3.imshow(cv2.cvtColor(outImg, cv2.COLOR_BGR2RGB))
+        ax3.set_title("Undistorted with Overlay", fontsize=20)
+        plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.05)
         fig.savefig(args.out_img)
