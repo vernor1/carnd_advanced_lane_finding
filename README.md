@@ -82,7 +82,7 @@ tolerates shadows on the lane lines, so we should use it in conjunction with H-c
 Perspective transformation is implemented in file `perspective_transform.py`, class `TPerspectiveTransformer`. The class constructor uses function `cv2.getPerspectiveTransform()` to compute the transformation matrix `M` as well as inverse matrix `Minv`, using manually picked source and destination points:
 
 | Corner       | Source        | Destination | 
-|:------------:|:-------------:|:-----------:| 
+|--------------|---------------|-------------| 
 | Left-Bottom  | 193, 719      | 320, 719    | 
 | Left-Top     | 595, 449      | 320, 0      |
 | Right-Top    | 685, 449      | 960, 0      |
