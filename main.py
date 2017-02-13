@@ -8,30 +8,28 @@ from lens_correction import TLensCorrector
 from moviepy.editor import VideoFileClip
 from perspective_transform import TPerspectiveTransformer
 
-# Constants -------------------------------------------------------------------
-CAMERA_CALIBRATION_DIR = "camera_calibration"
-
 # Global Variables ------------------------------------------------------------
-LensCorrector = TLensCorrector(CAMERA_CALIBRATION_DIR)
+LensCorrector = TLensCorrector("camera_calibration")
 LaneTracker = TLaneTracker()
-
-# FIXME: remove
-FRAME_RANGE = (1, 100)
-FrameNumber = 0
+PerspectiveTransformer = TPerspectiveTransformer(1280, 720)
 
 # Functions ------------------------------------------------------------
 def ProcessImage(img):
-    # FIXME: remove
-#    global FRAME_RANGE
-#    global FrameNumber
-#    FrameNumber += 1
-#    if FrameNumber not in range(FRAME_RANGE[0], FRAME_RANGE[1]):
-#        return img
+    """ Processes an RGB image by detecting the lane lines, radius of curvature and course deviation.
+        The information is added to the undistorded original image in overlay.
 
+    param: img: Image to process
+    returns: Processed RGB image
+    """
+    # Convert the RGB image of MoviePy to BGR format of OpenCV
+    img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
+    # Undistort the image
     undistortedImg = LensCorrector.Undistort(img)
-    perspectiveTransformer = TPerspectiveTransformer((undistortedImg.shape[1], undistortedImg.shape[0]))
+    # Transform
     thresholdedBinary = GetThresholdedBinary(undistortedImg)
-    warpedBinary = perspectiveTransformer.Warp(thresholdedBinary)
+    # Generate a bird's eye view
+    warpedBinary = PerspectiveTransformer.Warp(thresholdedBinary)
+    # Detect the lane lines, radius of curvature and course deviation
     leftCoefficients, rightCoefficients, curveRad, deviation = LaneTracker.ProcessLaneImage(warpedBinary)
     # Generate x and y values for plotting
     plotY = np.linspace(0, warpedBinary.shape[0] - 1, warpedBinary.shape[0])
@@ -44,21 +42,27 @@ def ProcessImage(img):
     rightPoints = np.array([np.flipud(np.transpose(np.vstack([rightPlotX, plotY])))])
     lanePoints = np.hstack((leftPoints, rightPoints))
     # Draw the lane onto the warped blank image
-    cv2.fillPoly(laneImg, np.int_([lanePoints]), (0, 0, 255))
-    # Draw lines
-    cv2.polylines(laneImg, np.int_([leftPoints]), isClosed=False, color=(255, 0, 0), thickness=32)
+    cv2.fillPoly(laneImg, np.int_([lanePoints]), (255, 0, 0))
+    # Draw the lane lines
+    cv2.polylines(laneImg, np.int_([leftPoints]), isClosed=False, color=(0, 0, 255), thickness=32)
     cv2.polylines(laneImg, np.int_([rightPoints]), isClosed=False, color=(0, 255, 0), thickness=32)
-    unwarpedLane = perspectiveTransformer.Unwarp(laneImg)
+    # Convert the lane image from the bird's eye view to the original perspective
+    unwarpedLane = PerspectiveTransformer.Unwarp(laneImg)
+    # Add the lane lines overlay
     outImg = cv2.addWeighted(undistortedImg, 1, unwarpedLane, 0.3, 0)
+    # Add the radius of curvature overlay
+    cv2.putText(outImg, "Curvature radius: %dm" % (curveRad),
+                (20, 70), cv2.FONT_HERSHEY_SIMPLEX, 1.4, (255, 255, 255), 2)
+    # Add the course deviation overlay
     if deviation < 0:
         deviationDirection = "left"
     else:
         deviationDirection = "right"
     deviation = np.absolute(deviation)
-    cv2.putText(outImg, "Curvature radius: %dm" % (curveRad),
-                (20, 70), cv2.FONT_HERSHEY_SIMPLEX, 1.4, (255, 255, 255), 2)
     cv2.putText(outImg, "Deviation: %.2fm %s" % (deviation, deviationDirection),
                 (20, 120), cv2.FONT_HERSHEY_SIMPLEX, 1.4, (255, 255, 255), 2)
+    # Convert the processed image back to the RGB format comatible with MoviePy
+    outImg = cv2.cvtColor(outImg, cv2.COLOR_BGR2RGB)
     return outImg
 
 if __name__ == '__main__':

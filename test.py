@@ -9,9 +9,6 @@ from lens_correction import TLensCorrector
 from perspective_transform import TPerspectiveTransformer
 
 
-CAMERA_CALIBRATION_DIR = "camera_calibration"
-
-
 # The following code is only used for debugging and generating test images
 #------------------------------------------------------------------------------
 if __name__ == '__main__':
@@ -27,7 +24,7 @@ if __name__ == '__main__':
     args = argParser.parse_args()
 
     img = cv2.imread(args.in_img)
-    lensCorrector = TLensCorrector(CAMERA_CALIBRATION_DIR)
+    lensCorrector = TLensCorrector("camera_calibration")
     undistortedImg = lensCorrector.Undistort(img)
 
     if args.type == "lens_correction":
@@ -96,7 +93,7 @@ if __name__ == '__main__':
         fig.savefig(args.out_img)
 
     elif args.type == "perspective_transform":
-        perspectiveTransformer = TPerspectiveTransformer((undistortedImg.shape[1], undistortedImg.shape[0]))
+        perspectiveTransformer = TPerspectiveTransformer(undistortedImg.shape[1], undistortedImg.shape[0])
         warpedImg = perspectiveTransformer.Warp(undistortedImg)
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 8))
         fig.tight_layout()
@@ -108,7 +105,7 @@ if __name__ == '__main__':
         fig.savefig(args.out_img)
 
     elif args.type == "lane_tracking":
-        perspectiveTransformer = TPerspectiveTransformer((undistortedImg.shape[1], undistortedImg.shape[0]))
+        perspectiveTransformer = TPerspectiveTransformer(undistortedImg.shape[1], undistortedImg.shape[0])
         thresholdedBinary = GetThresholdedBinary(undistortedImg)
         warpedBinary = perspectiveTransformer.Warp(thresholdedBinary)
         laneTracker = TLaneTracker()
@@ -145,7 +142,6 @@ if __name__ == '__main__':
         ax1.imshow(cv2.cvtColor(undistortedImg, cv2.COLOR_BGR2RGB))
         ax1.set_title("Undistorted Image", fontsize=20)
         ax2.imshow(cv2.cvtColor(warpedBinary * 255, cv2.COLOR_GRAY2RGB))
-#        cv2.imwrite("test_images/warped.png", cv2.cvtColor(warpedBinary * 255, cv2.COLOR_GRAY2RGB))
         plt.rcParams['lines.linewidth'] = 7
         ax2.plot(leftPlotX, plotY, color='red')
         ax2.plot(rightPlotX, plotY, color='green')

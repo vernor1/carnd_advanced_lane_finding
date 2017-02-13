@@ -2,11 +2,15 @@ import cv2
 import numpy as np
 
 
-# Define a function that applies Sobel x or y, 
-# then takes an absolute value and applies a threshold.
-# Note: calling your function with orient='x', thresh_min=5, thresh_max=100
-# should produce output like the example image shown above this quiz.
 def GetSobelBinary(channel, orient='x', sobelKernel=3, thresh=(0, 255)):
+    """ Applies the Sobel-function to a channel image and generates the binary image.
+
+    param: channel: 2D array of the image channel
+    param: orient: Axis for the derivative, 'x' or 'y'
+    param: sobelKernel: Sobel kernel size, must be odd
+    param: thresh: Tuple of min, max threshold
+    returns: Binary image
+    """
     # Take the derivative in x or y given orient = 'x' or 'y'
     if orient == 'x':
         sobel = cv2.Sobel(channel, cv2.CV_64F, 1, 0, ksize=sobelKernel)
@@ -21,10 +25,14 @@ def GetSobelBinary(channel, orient='x', sobelKernel=3, thresh=(0, 255)):
     outBinary[(scaledSobel >= thresh[0]) & (scaledSobel <= thresh[1])] = 1
     return outBinary
 
-# Define a function that applies Sobel x and y, 
-# then computes the magnitude of the gradient
-# and applies a threshold
 def GetMagnitudeBinary(channel, sobelKernel=3, thresh=(0, 255)):
+    """ Computes the magnitude of the gradient of a channel image and generates the binary image.
+
+    param: channel: 2D array of the image channel
+    param: sobelKernel: Sobel kernel size, must be odd
+    param: thresh: Tuple of min, max threshold
+    returns: Binary image
+    """
     # Take the gradient in x and y separately
     sobelX = cv2.Sobel(channel, cv2.CV_64F, 1, 0, ksize=sobelKernel)
     sobelY = cv2.Sobel(channel, cv2.CV_64F, 0, 1, ksize=sobelKernel)
@@ -37,10 +45,14 @@ def GetMagnitudeBinary(channel, sobelKernel=3, thresh=(0, 255)):
     outBinary[(scaledSobel >= thresh[0]) & (scaledSobel <= thresh[1])] = 1
     return outBinary
 
-# Define a function that applies Sobel x and y, 
-# then computes the direction of the gradient
-# and applies a threshold.
 def GetDirectionBinary(channel, sobelKernel=3, thresh=(0, np.pi/2)):
+    """ Computes the direction of the gradient of a channel image and generates the binary image.
+
+    param: channel: 2D array of the image channel
+    param: sobelKernel: Sobel kernel size, must be odd
+    param: thresh: Tuple of min, max threshold in radians
+    returns: Binary image
+    """
     # Take the gradient in x and y separately
     sobelX = cv2.Sobel(channel, cv2.CV_64F, 1, 0, ksize=sobelKernel)
     sobelY = cv2.Sobel(channel, cv2.CV_64F, 0, 1, ksize=sobelKernel)
@@ -55,11 +67,22 @@ def GetDirectionBinary(channel, sobelKernel=3, thresh=(0, np.pi/2)):
     return outBinary
 
 def GetChannelBinary(channel, thresh=(0, 255)):
+    """ Computes the threshold of a channel image and generates the binary image.
+
+    param: channel: 2D array of the image channel
+    param: thresh: Tuple of min, max threshold
+    returns: Binary image
+    """
     outBinary = np.zeros(channel.shape, dtype=np.uint8)
     outBinary[(channel >= thresh[0]) & (channel <= thresh[1])] = 1
     return outBinary
 
 def GetThresholdedBinary(img):
+    """ Applies a combination of the function above to generate the binary image revealing lane lines.
+
+    param: channel: 2D array of the image channel
+    returns: Binary image
+    """
     hls = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
     channelS = hls[:,:,2]
     channelBinaryS = GetChannelBinary(channelS, thresh=(90, 255))
