@@ -19,7 +19,6 @@ The goals / steps of this project are the following:
 [image4]: ./examples/warped_straight_lines1.png "Perspective Transform"
 [image5]: ./examples/color_fit_lines.jpg "Fit Visual"
 [image6]: ./examples/lane_detected_test5.png "Lane Detection and Overlay"
-[video1]: ./project_video.mp4 "Video"
 
 ## [Rubric](https://review.udacity.com/#!/rubrics/571/view) Points
 ### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.
@@ -101,15 +100,15 @@ The lane detection and tracking code is located in file `lane_tracking.py`, clas
 
 ![alt text][image5]
 
-An object of class `TLine` maintains a history of 7 most recent samples using private method `UpdateHistoryWithNewPoints()`. Method `ProcessLineImage()` uses either method for computing polynomial coefficients. In case of updating with `ExtractUpdatedPoints()`, a sanity check is performed against the updated coefficients if they are off limits, which are manually picked as doubled maximum coefficients for [project video](./project_video.mp4) `(6e-4, 4e-1, 1e+2)`. If the updated coefficients are off-limits, they are discarded on the history is truncated by the oldest entry. Once the history list is empty, the recovery line detection method `ExtractNewPoints()` is used for deriving the new polinomial coefficients.
+An object of class `TLine` maintains a history of 7 most recent samples using private method `UpdateHistoryWithNewPoints()`. Public method `ProcessLineImage()` uses either way for computing polynomial coefficients: `ExtractNewPoints()` or `ExtractUpdatedPoints()`. In case of updating with the later method, a sanity check is performed against the updated coefficients whether they are off limits, which are manually picked as doubled maximum observed coefficients for [project video](./project_video.mp4) `(6e-4, 4e-1, 1e+2)`. If the updated coefficients are off-limits, they are discarded, and the history is truncated by the oldest entry. Once the history list is empty, the recovery line detection method `ExtractNewPoints()` is used for deriving the new polinomial coefficients.
 
 ####5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.
 
-I did this in lines # through # in my code in `my_other_file.py`
+The radius of curvature and course deviation are computed in the same file `lane_tracking.py`. Method `TLaneLines::TLine::UpdateHistoryWithNewPoints()` calculates the curvature radius in meters and stores it in the curvature history list. The history is used by method `TLine::ProcessLineImage()` for calculating the average curvature radius over up to 7 recent samples, as well as the base line X-position, which are returned to the object of class `TLaneTracker`. Then method `TLaneTracker::ProcessLaneImage()` calculates the mean curvature radius for two lane lines, and the course deviation assuming that the lane width is 3.7 meters. Both values are returned to the user for further adding to the video overlay.
 
 ####6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.
 
-I implemented this step in lines # through # in my code in `yet_another_file.py` in the function `map_lane()`.  Here is an example of my result on a test image:
+The real overlay code is implemented in file `main.py`, function `ProcessImage()` which is used for processing MoviePy images. However there's also a unit testing code for the overlay functionality implemented in file `test.py`, called with `test.py lane_tracking <in_img> <out_img>`:
 
 ![alt text][image6]
 
@@ -119,7 +118,7 @@ I implemented this step in lines # through # in my code in `yet_another_file.py`
 
 ####1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
 
-Here's a [link to my video result](./project_video.mp4)
+Here's a [link to my video result](https://youtu.be/464FM1oQzE0)
 
 ---
 
